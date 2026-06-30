@@ -5,7 +5,8 @@ export type AnimationType =
   | 'hearts'
   | 'beating-heart'
   | 'beating-heart-shapes'
-  | 'floating-hearts';
+  | 'floating-hearts'
+  | 'floating-hearts-shapes';
 
 export interface Blob {
   x: number;

@@ -108,7 +108,14 @@ export default function AnimationCanvas({
         case 'floating-hearts':
           drawFloatingHeartsFrame(
             ctx, width, height, state.floatingHearts, time,
-            gridSpacing, c.floatingInner, c.floatingMid, c.floatingOuter
+            gridSpacing, c.floatingInner, c.floatingMid, c.floatingOuter, false
+          );
+          break;
+
+        case 'floating-hearts-shapes':
+          drawFloatingHeartsFrame(
+            ctx, width, height, state.floatingHearts, time,
+            gridSpacing, c.floatingInner, c.floatingMid, c.floatingOuter, true
           );
           break;
       }

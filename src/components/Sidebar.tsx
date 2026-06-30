@@ -21,6 +21,7 @@ const ANIMATIONS: { type: AnimationType; label: string; icon: string }[] = [
   { type: 'beating-heart', label: 'Beating Heart', icon: '💓' },
   { type: 'beating-heart-shapes', label: 'Heart Pulse', icon: '♥' },
   { type: 'floating-hearts', label: 'Floating Hearts', icon: '💕' },
+  { type: 'floating-hearts-shapes', label: 'Heart Drift', icon: '♥' },
 ];
 
 export default function Sidebar({

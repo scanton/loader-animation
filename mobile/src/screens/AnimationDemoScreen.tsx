@@ -18,6 +18,7 @@ const ANIMATIONS: { type: AnimationType; label: string; icon: string }[] = [
   { type: 'beating-heart', label: 'Beating Heart', icon: '💓' },
   { type: 'beating-heart-shapes', label: 'Heart Pulse', icon: '♥' },
   { type: 'floating-hearts', label: 'Floating Hearts', icon: '💕' },
+  { type: 'floating-hearts-shapes', label: 'Heart Drift', icon: '♥' },
 ];
 
 const SUBTITLES: Record<AnimationType, string> = {
@@ -26,6 +27,7 @@ const SUBTITLES: Record<AnimationType, string> = {
   'beating-heart': 'Pouring some love into this — almost there.',
   'beating-heart-shapes': 'Pouring some love into this — almost there.',
   'floating-hearts': 'HeartStamp is thinking of you 💕',
+  'floating-hearts-shapes': 'HeartStamp is thinking of you 💕',
 };
 
 export function AnimationDemoScreen() {
@@ -140,7 +142,9 @@ function renderAnimation(
     case 'beating-heart-shapes':
       return <BeatingHeartCanvas width={width} height={height} gridSpacing={gridSpacing} isDark={isDark} useHearts />;
     case 'floating-hearts':
-      return <FloatingHeartsCanvas width={width} height={height} gridSpacing={gridSpacing} isDark={isDark} />;
+      return <FloatingHeartsCanvas width={width} height={height} gridSpacing={gridSpacing} isDark={isDark} useHearts={false} />;
+    case 'floating-hearts-shapes':
+      return <FloatingHeartsCanvas width={width} height={height} gridSpacing={gridSpacing} isDark={isDark} useHearts />;
   }
 }
 

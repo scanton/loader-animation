@@ -7,6 +7,7 @@ import {
 } from '@animations-core/floatingHeartsMath';
 import { forEachGridPoint, DOT_MAX_RADIUS_RATIO } from '@animations-core/gridMath';
 import { DARK_PALETTE, LIGHT_PALETTE } from './palette';
+import { addHeartToPath } from './skiaHeartPath';
 import { useStableInit, useElapsedSeconds } from './hooks';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
   height: number;
   gridSpacing?: number;
   isDark?: boolean;
+  useHearts?: boolean;
 }
 
 export function FloatingHeartsCanvas({
@@ -21,6 +23,7 @@ export function FloatingHeartsCanvas({
   height,
   gridSpacing = 18,
   isDark = true,
+  useHearts = false,
 }: Props) {
   const hearts = useStableInit(width, height, (w, h) =>
     initFloatingHearts(w, h, floatingHeartCount(w, h))
@@ -69,13 +72,17 @@ export function FloatingHeartsCanvas({
         target = outerPath;
       }
 
-      target.addCircle(gx, gy, Math.max(0.5, r));
+      if (useHearts && r >= 2) {
+        addHeartToPath(target, gx, gy, r);
+      } else {
+        target.addCircle(gx, gy, Math.max(0.5, r));
+      }
     });
 
     canvas.drawPath(outerPath, outerPaint);
     canvas.drawPath(midPath, midPaint);
     canvas.drawPath(innerPath, innerPaint);
-  }, [width, height, gridSpacing, isDark, hearts]);
+  }, [width, height, gridSpacing, isDark, useHearts, hearts]);
 
   return <Canvas style={{ width, height }} onDraw={onDraw} />;
 }

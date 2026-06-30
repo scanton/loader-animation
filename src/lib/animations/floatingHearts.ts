@@ -1,6 +1,7 @@
 import type { FloatingHeart } from './core/types';
 import { initFloatingHearts, updateFloatingHeart, computeHeartField } from './core/floatingHeartsMath';
 import { forEachGridPoint, DOT_MAX_RADIUS_RATIO } from './core/gridMath';
+import { drawHeart } from './heartPath';
 
 export type { FloatingHeart };
 export { initFloatingHearts };
@@ -14,7 +15,8 @@ export function drawFloatingHeartsFrame(
   gridSpacing: number,
   colorInner: string,
   colorMid: string,
-  colorOuter: string
+  colorOuter: string,
+  useHearts: boolean
 ): void {
   ctx.clearRect(0, 0, width, height);
 
@@ -40,8 +42,16 @@ export function drawFloatingHeartsFrame(
       ctx.fillStyle = colorOuter;
     }
 
-    ctx.beginPath();
-    ctx.arc(gx, gy, Math.max(0.5, r), 0, Math.PI * 2);
-    ctx.fill();
+    if (useHearts && r >= 2) {
+      ctx.save();
+      ctx.translate(gx, gy);
+      drawHeart(ctx, 0, 0, r);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.arc(gx, gy, Math.max(0.5, r), 0, Math.PI * 2);
+      ctx.fill();
+    }
   });
 }
