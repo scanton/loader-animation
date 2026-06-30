@@ -15,13 +15,15 @@ interface Props {
   onToggleDark: () => void;
 }
 
-const ANIMATIONS: { type: AnimationType; label: string; icon: string }[] = [
-  { type: 'dots', label: 'Lava Dots', icon: '⬤' },
-  { type: 'hearts', label: 'Lava Hearts', icon: '♥' },
-  { type: 'beating-heart', label: 'Beating Heart', icon: '💓' },
-  { type: 'beating-heart-shapes', label: 'Heart Pulse', icon: '♥' },
-  { type: 'floating-hearts', label: 'Floating Hearts', icon: '💕' },
-  { type: 'floating-hearts-shapes', label: 'Heart Drift', icon: '♥' },
+// hidden: true keeps the animation type fully functional (selectable via
+// AnimationType, still renders) but removes its button from the picker.
+const ANIMATIONS: { type: AnimationType; label: string; icon: string; hidden?: boolean }[] = [
+  { type: 'dots', label: 'Lava Dots', icon: '⬤', hidden: true },
+  { type: 'hearts', label: 'Lava Hearts', icon: '❤️‍🔥' },
+  { type: 'beating-heart', label: 'Beating Heart', icon: '💓', hidden: true },
+  { type: 'beating-heart-shapes', label: 'Heart Pulse', icon: '💓' },
+  { type: 'floating-hearts', label: 'Floating Hearts', icon: '💕', hidden: true },
+  { type: 'floating-hearts-shapes', label: 'Heart Drift', icon: '💕' },
 ];
 
 export default function Sidebar({
@@ -59,7 +61,7 @@ export default function Sidebar({
       <div>
         <p className={sectionLabelClass}>Animation</p>
         <div className="flex flex-col gap-2">
-          {ANIMATIONS.map(({ type, label: animLabel, icon }) => (
+          {ANIMATIONS.filter(a => !a.hidden).map(({ type, label: animLabel, icon }) => (
             <button
               key={type}
               onClick={() => onSelect(type)}

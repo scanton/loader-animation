@@ -12,13 +12,15 @@ import { BeatingHeartCanvas } from '../animations/BeatingHeartCanvas';
 import { LavaDotsCanvas } from '../animations/LavaDotsCanvas';
 import { FloatingHeartsCanvas } from '../animations/FloatingHeartsCanvas';
 
-const ANIMATIONS: { type: AnimationType; label: string; icon: string }[] = [
-  { type: 'dots', label: 'Lava Dots', icon: '⬤' },
-  { type: 'hearts', label: 'Lava Hearts', icon: '♥' },
-  { type: 'beating-heart', label: 'Beating Heart', icon: '💓' },
-  { type: 'beating-heart-shapes', label: 'Heart Pulse', icon: '♥' },
-  { type: 'floating-hearts', label: 'Floating Hearts', icon: '💕' },
-  { type: 'floating-hearts-shapes', label: 'Heart Drift', icon: '♥' },
+// hidden: true keeps the animation type fully functional (selectable via
+// AnimationType, still renders) but removes its button from the picker.
+const ANIMATIONS: { type: AnimationType; label: string; icon: string; hidden?: boolean }[] = [
+  { type: 'dots', label: 'Lava Dots', icon: '⬤', hidden: true },
+  { type: 'hearts', label: 'Lava Hearts', icon: '❤️‍🔥' },
+  { type: 'beating-heart', label: 'Beating Heart', icon: '💓', hidden: true },
+  { type: 'beating-heart-shapes', label: 'Heart Pulse', icon: '💓' },
+  { type: 'floating-hearts', label: 'Floating Hearts', icon: '💕', hidden: true },
+  { type: 'floating-hearts-shapes', label: 'Heart Drift', icon: '💕' },
 ];
 
 const SUBTITLES: Record<AnimationType, string> = {
@@ -33,7 +35,7 @@ const SUBTITLES: Record<AnimationType, string> = {
 export function AnimationDemoScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const [isDark, setIsDark] = useState(true);
-  const [animationType, setAnimationType] = useState<AnimationType>('dots');
+  const [animationType, setAnimationType] = useState<AnimationType>('hearts');
   const [gridSpacing, setGridSpacing] = useState(18);
 
   const canvasWidth  = windowWidth - 32;
@@ -60,7 +62,7 @@ export function AnimationDemoScreen() {
 
         {/* Animation picker */}
         <View style={styles.animRow}>
-          {ANIMATIONS.map(({ type, label, icon }) => (
+          {ANIMATIONS.filter(a => !a.hidden).map(({ type, label, icon }) => (
             <TouchableOpacity
               key={type}
               style={[

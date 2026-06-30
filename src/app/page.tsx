@@ -20,7 +20,7 @@ const SUBTITLES: Record<AnimationType, string> = {
 };
 
 export default function Home() {
-  const [animationType, setAnimationType] = useState<AnimationType>('dots');
+  const [animationType, setAnimationType] = useState<AnimationType>('hearts');
   const [width, setWidth] = useState(740);
   const [height, setHeight] = useState(600);
   const [gridSpacing, setGridSpacing] = useState(18);
