@@ -1,21 +1,13 @@
-import React, { useRef } from 'react';
+import React, { useMemo } from 'react';
 import { Canvas, useDrawCallback, Skia } from '@shopify/react-native-skia';
 import type { SkCanvas, SkPath, DrawingInfo } from '@shopify/react-native-skia';
 
 import {
-  initFloatingHearts, updateFloatingHeart, computeHeartField,
+  initFloatingHearts, updateFloatingHeart, computeHeartField, floatingHeartCount,
 } from '@animations-core/floatingHeartsMath';
-import type { FloatingHeart } from '@animations-core/types';
+import { forEachGridPoint, DOT_MAX_RADIUS_RATIO } from '@animations-core/gridMath';
 import { DARK_PALETTE, LIGHT_PALETTE } from './palette';
-
-// Module-level Skia objects — created once, reused every frame.
-const innerPaint = Skia.Paint(); innerPaint.setAntiAlias(true);
-const midPaint   = Skia.Paint(); midPaint.setAntiAlias(true);
-const outerPaint = Skia.Paint(); outerPaint.setAntiAlias(true);
-
-const innerPath = Skia.Path.Make();
-const midPath   = Skia.Path.Make();
-const outerPath = Skia.Path.Make();
+import { useStableInit, useElapsedSeconds } from './hooks';
 
 interface Props {
   width: number;
@@ -24,30 +16,28 @@ interface Props {
   isDark?: boolean;
 }
 
-function heartCount(w: number, h: number): number {
-  return Math.min(10, Math.max(6, Math.floor((w * h) / 55000)));
-}
-
 export function FloatingHeartsCanvas({
   width,
   height,
   gridSpacing = 18,
   isDark = true,
 }: Props) {
-  const heartsRef = useRef<FloatingHeart[] | null>(null);
-  const dimsRef = useRef<{ w: number; h: number } | null>(null);
-  if (heartsRef.current === null || dimsRef.current?.w !== width || dimsRef.current?.h !== height) {
-    heartsRef.current = initFloatingHearts(width, height, heartCount(width, height));
-    dimsRef.current = { w: width, h: height };
-  }
-  const startTimeRef = useRef<number | null>(null);
+  const hearts = useStableInit(width, height, (w, h) =>
+    initFloatingHearts(w, h, floatingHeartCount(w, h))
+  );
+
+  const innerPaint = useMemo(() => { const p = Skia.Paint(); p.setAntiAlias(true); return p; }, []);
+  const midPaint   = useMemo(() => { const p = Skia.Paint(); p.setAntiAlias(true); return p; }, []);
+  const outerPaint = useMemo(() => { const p = Skia.Paint(); p.setAntiAlias(true); return p; }, []);
+  const innerPath  = useMemo(() => Skia.Path.Make(), []);
+  const midPath    = useMemo(() => Skia.Path.Make(), []);
+  const outerPath  = useMemo(() => Skia.Path.Make(), []);
+
+  const getElapsedSeconds = useElapsedSeconds();
 
   const onDraw = useDrawCallback((canvas: SkCanvas, info: DrawingInfo) => {
-    if (startTimeRef.current === null) startTimeRef.current = info.timestamp;
-    const origin = startTimeRef.current ?? info.timestamp;
-    const timeSec = (info.timestamp - origin) / 1000;
+    const timeSec = getElapsedSeconds(info);
 
-    const hearts = heartsRef.current!;
     for (const h of hearts) {
       updateFloatingHeart(h, width, height, timeSec);
     }
@@ -59,43 +49,33 @@ export function FloatingHeartsCanvas({
     canvas.clear(palette.background);
 
     const minR = 2;
-    const maxR = gridSpacing * 0.23;
-
-    const cols    = Math.floor(width / gridSpacing);
-    const rows    = Math.floor(height / gridSpacing);
-    const offsetX = (width  - cols * gridSpacing) / 2 + gridSpacing / 2;
-    const offsetY = (height - rows * gridSpacing) / 2 + gridSpacing / 2;
+    const maxR = gridSpacing * DOT_MAX_RADIUS_RATIO;
 
     innerPath.reset();
     midPath.reset();
     outerPath.reset();
 
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const gx = offsetX + col * gridSpacing;
-        const gy = offsetY + row * gridSpacing;
+    forEachGridPoint(width, height, gridSpacing, (gx, gy) => {
+      const field = computeHeartField(gx, gy, hearts);
+      const r = minR + (maxR - minR) * field;
 
-        const field = computeHeartField(gx, gy, hearts);
-        const r = minR + (maxR - minR) * field;
-
-        let target: SkPath;
-        if (field > 0.7) {
-          target = innerPath;
-        } else if (field > 0.15) {
-          const mix = (field - 0.15) / 0.55;
-          target = mix > 0.5 ? innerPath : midPath;
-        } else {
-          target = outerPath;
-        }
-
-        target.addCircle(gx, gy, Math.max(0.5, r));
+      let target: SkPath;
+      if (field > 0.7) {
+        target = innerPath;
+      } else if (field > 0.15) {
+        const mix = (field - 0.15) / 0.55;
+        target = mix > 0.5 ? innerPath : midPath;
+      } else {
+        target = outerPath;
       }
-    }
+
+      target.addCircle(gx, gy, Math.max(0.5, r));
+    });
 
     canvas.drawPath(outerPath, outerPaint);
     canvas.drawPath(midPath, midPaint);
     canvas.drawPath(innerPath, innerPaint);
-  }, [width, height, gridSpacing, isDark]);
+  }, [width, height, gridSpacing, isDark, hearts]);
 
   return <Canvas style={{ width, height }} onDraw={onDraw} />;
 }

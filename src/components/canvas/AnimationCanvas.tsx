@@ -10,6 +10,8 @@ import {
   drawFloatingHeartsFrame,
   type FloatingHeart,
 } from '@/lib/animations/floatingHearts';
+import { floatingHeartCount } from '@/lib/animations/core/floatingHeartsMath';
+import { DARK_PALETTE, LIGHT_PALETTE } from '@/lib/animations/core/palette';
 
 interface Props {
   animationType: AnimationType;
@@ -29,28 +31,6 @@ interface AnimState {
   lastHeight: number;
 }
 
-const DARK_COLORS = {
-  dots:           '#8a94a0',
-  hearts:         '#e879a0',
-  beatingInner:   '#f43f5e',
-  beatingOuter:   '#5a2535',
-  beatingRipple:  '#c04468',
-  floatingInner:  '#e879a0',
-  floatingMid:    '#9b3d65',
-  floatingOuter:  '#4a2030',
-};
-
-const LIGHT_COLORS = {
-  dots:           '#64748b',
-  hearts:         '#e11d48',
-  beatingInner:   '#f43f5e',
-  beatingOuter:   '#d1d5db',
-  beatingRipple:  '#fda4af',
-  floatingInner:  '#f43f5e',
-  floatingMid:    '#fda4af',
-  floatingOuter:  '#e5e7eb',
-};
-
 export default function AnimationCanvas({
   animationType,
   width,
@@ -63,10 +43,9 @@ export default function AnimationCanvas({
 
   const initState = useCallback(
     (type: AnimationType, w: number, h: number): AnimState => {
-      const floatingCount = Math.min(10, Math.max(6, Math.floor((w * h) / 55000)));
       return {
         blobs: type === 'hearts' ? initHeartsBlobs(w, h) : initDotsBlobs(w, h),
-        floatingHearts: initFloatingHearts(w, h, floatingCount),
+        floatingHearts: initFloatingHearts(w, h, floatingHeartCount(w, h)),
         rafId: 0,
         startTime: performance.now(),
         lastType: type,
@@ -99,7 +78,7 @@ export default function AnimationCanvas({
 
     const tick = (now: number) => {
       const time = now - state.startTime;
-      const c = isDark ? DARK_COLORS : LIGHT_COLORS;
+      const c = isDark ? DARK_PALETTE : LIGHT_PALETTE;
 
       switch (animationType) {
         case 'dots':

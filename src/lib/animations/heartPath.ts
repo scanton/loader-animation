@@ -1,6 +1,5 @@
 // Re-export the SDF from core so web import paths stay backward-compatible.
 export { heartSDF } from './core/heartMath';
-import { heartSDF } from './core/heartMath';
 
 // Draw a heart centered at (cx, cy) with given radius — web canvas only.
 export function drawHeart(
@@ -20,8 +19,4 @@ export function drawHeart(
     else ctx.lineTo(cx + hx * s, cy + hy * s);
   }
   ctx.closePath();
-}
-
-export function isInsideHeart(px: number, py: number, cx: number, cy: number, scale: number): boolean {
-  return heartSDF(px, py, cx, cy, scale) < 0;
 }

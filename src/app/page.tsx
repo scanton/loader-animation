@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import type { AnimationType } from '@/lib/animations/types';
 import Sidebar from '@/components/Sidebar';
@@ -24,6 +24,12 @@ export default function Home() {
   const [height, setHeight] = useState(600);
   const [gridSpacing, setGridSpacing] = useState(18);
   const [isDark, setIsDark] = useState(true);
+
+  // Keep <body>'s background in sync with the theme so overscroll/edge
+  // areas outside <main> don't flash the wrong color.
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', !isDark);
+  }, [isDark]);
 
   return (
     <main className={`min-h-screen flex items-center justify-center p-8 transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-zinc-100'}`}>

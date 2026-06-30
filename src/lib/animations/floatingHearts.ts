@@ -1,5 +1,6 @@
 import type { FloatingHeart } from './core/types';
 import { initFloatingHearts, updateFloatingHeart, computeHeartField } from './core/floatingHeartsMath';
+import { forEachGridPoint, DOT_MAX_RADIUS_RATIO } from './core/gridMath';
 
 export type { FloatingHeart };
 export { initFloatingHearts };
@@ -24,33 +25,23 @@ export function drawFloatingHeartsFrame(
   }
 
   const minR = 2;
-  const maxR = gridSpacing * 0.23;
+  const maxR = gridSpacing * DOT_MAX_RADIUS_RATIO;
 
-  const cols = Math.floor(width / gridSpacing);
-  const rows = Math.floor(height / gridSpacing);
-  const offsetX = (width - cols * gridSpacing) / 2 + gridSpacing / 2;
-  const offsetY = (height - rows * gridSpacing) / 2 + gridSpacing / 2;
+  forEachGridPoint(width, height, gridSpacing, (gx, gy) => {
+    const field = computeHeartField(gx, gy, hearts);
+    const r = minR + (maxR - minR) * field;
 
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const gx = offsetX + col * gridSpacing;
-      const gy = offsetY + row * gridSpacing;
-
-      const field = computeHeartField(gx, gy, hearts);
-      const r = minR + (maxR - minR) * field;
-
-      if (field > 0.7) {
-        ctx.fillStyle = colorInner;
-      } else if (field > 0.15) {
-        const mix = (field - 0.15) / 0.55;
-        ctx.fillStyle = mix > 0.5 ? colorInner : colorMid;
-      } else {
-        ctx.fillStyle = colorOuter;
-      }
-
-      ctx.beginPath();
-      ctx.arc(gx, gy, Math.max(0.5, r), 0, Math.PI * 2);
-      ctx.fill();
+    if (field > 0.7) {
+      ctx.fillStyle = colorInner;
+    } else if (field > 0.15) {
+      const mix = (field - 0.15) / 0.55;
+      ctx.fillStyle = mix > 0.5 ? colorInner : colorMid;
+    } else {
+      ctx.fillStyle = colorOuter;
     }
-  }
+
+    ctx.beginPath();
+    ctx.arc(gx, gy, Math.max(0.5, r), 0, Math.PI * 2);
+    ctx.fill();
+  });
 }

@@ -35,7 +35,7 @@ export default function Sidebar({
   isDark,
   onToggleDark,
 }: Props) {
-  const label = (text: string) =>
+  const sectionLabelClass =
     `text-xs font-semibold uppercase tracking-widest mb-3 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`;
 
   return (
@@ -43,6 +43,7 @@ export default function Sidebar({
       {/* Light / Dark toggle */}
       <button
         onClick={onToggleDark}
+        aria-pressed={isDark}
         className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
           isDark
             ? 'bg-zinc-800/60 text-zinc-300 border-zinc-700/50 hover:bg-zinc-700/60'
@@ -55,12 +56,13 @@ export default function Sidebar({
 
       {/* Animation type selector */}
       <div>
-        <p className={label('Animation')}>Animation</p>
+        <p className={sectionLabelClass}>Animation</p>
         <div className="flex flex-col gap-2">
           {ANIMATIONS.map(({ type, label: animLabel, icon }) => (
             <button
               key={type}
               onClick={() => onSelect(type)}
+              aria-current={selected === type}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                 selected === type
                   ? isDark
@@ -80,7 +82,7 @@ export default function Sidebar({
 
       {/* Size controls */}
       <div>
-        <p className={label('Canvas Size')}>Canvas Size</p>
+        <p className={sectionLabelClass}>Canvas Size</p>
         <div className="flex flex-col gap-4">
           <SliderControl
             label="Width"
@@ -107,7 +109,7 @@ export default function Sidebar({
 
       {/* Grid spacing */}
       <div>
-        <p className={label('Grid Density')}>Grid Density</p>
+        <p className={sectionLabelClass}>Grid Density</p>
         <SliderControl
           label="Spacing"
           value={gridSpacing}
@@ -142,15 +144,20 @@ function SliderControl({
   unit?: string;
   isDark: boolean;
 }) {
+  const inputId = `slider-${label.toLowerCase().replace(/\s+/g, '-')}`;
+
   return (
     <div>
       <div className="flex justify-between mb-1.5">
-        <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{label}</span>
+        <label htmlFor={inputId} className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+          {label}
+        </label>
         <span className={`text-xs font-mono ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>
           {value}{unit}
         </span>
       </div>
       <input
+        id={inputId}
         type="range"
         min={min}
         max={max}

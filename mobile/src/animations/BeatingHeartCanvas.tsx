@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useMemo } from 'react';
 import { Canvas, useDrawCallback, Skia } from '@shopify/react-native-skia';
 import type { SkCanvas, SkPath, DrawingInfo } from '@shopify/react-native-skia';
 
 import { heartSDF, smoothstep } from '@animations-core/heartMath';
+import { forEachGridPoint, DOT_MAX_RADIUS_RATIO } from '@animations-core/gridMath';
 import {
   BEAT_RATE, HEART_SCALE_FACTOR, BEAT_AMPLITUDE,
   EDGE_OUTER, EDGE_INNER,
@@ -10,22 +11,7 @@ import {
 } from '@animations-core/beatingHeartMath';
 import { DARK_PALETTE, LIGHT_PALETTE } from './palette';
 import { addHeartToPath } from './skiaHeartPath';
-
-// ---------------------------------------------------------------------------
-// Module-level Skia objects — created once, reused every frame.
-// If you render multiple BeatingHeartCanvas instances simultaneously, move
-// these into useRef() inside the component instead.
-// ---------------------------------------------------------------------------
-const innerPaint  = Skia.Paint(); innerPaint.setAntiAlias(true);
-const ripplePaint = Skia.Paint(); ripplePaint.setAntiAlias(true);
-const outerPaint  = Skia.Paint(); outerPaint.setAntiAlias(true);
-
-// Pre-allocated paths — reset() each frame avoids GC pressure from ~60 allocations/sec.
-const innerPath  = Skia.Path.Make();
-const ripplePath = Skia.Path.Make();
-const outerPath  = Skia.Path.Make();
-
-// ---------------------------------------------------------------------------
+import { useElapsedSeconds } from './hooks';
 
 interface Props {
   width: number;
@@ -42,20 +28,25 @@ export function BeatingHeartCanvas({
   isDark = true,
   useHearts = false,
 }: Props) {
-  const startTimeRef = useRef<number | null>(null);
+  // Paint/path objects are per-instance (not module-level) so multiple
+  // BeatingHeartCanvas instances can render simultaneously without one
+  // instance's frame corrupting another's in-flight path.
+  const innerPaint  = useMemo(() => { const p = Skia.Paint(); p.setAntiAlias(true); return p; }, []);
+  const ripplePaint = useMemo(() => { const p = Skia.Paint(); p.setAntiAlias(true); return p; }, []);
+  const outerPaint  = useMemo(() => { const p = Skia.Paint(); p.setAntiAlias(true); return p; }, []);
+  const innerPath   = useMemo(() => Skia.Path.Make(), []);
+  const ripplePath  = useMemo(() => Skia.Path.Make(), []);
+  const outerPath   = useMemo(() => Skia.Path.Make(), []);
+
+  const getElapsedSeconds = useElapsedSeconds();
 
   const onDraw = useDrawCallback((canvas: SkCanvas, info: DrawingInfo) => {
-    if (startTimeRef.current === null) startTimeRef.current = info.timestamp;
-    const origin = startTimeRef.current ?? info.timestamp;
-    const timeSec = (info.timestamp - origin) / 1000;
-
+    const timeSec = getElapsedSeconds(info);
     const palette = isDark ? DARK_PALETTE : LIGHT_PALETTE;
 
-    // Update paint colors for this frame's theme.
     innerPaint.setColor(palette.beatingInner);
     ripplePaint.setColor(palette.beatingRipple);
     outerPaint.setColor(palette.beatingOuter);
-
     canvas.clear(palette.background);
 
     // --- Heartbeat state ---
@@ -68,58 +59,44 @@ export function BeatingHeartCanvas({
     const baseHeartScale = Math.min(width, height) * HEART_SCALE_FACTOR;
     const heartScale     = baseHeartScale * beatScale;
 
-    const maxR     = gridSpacing * 0.23;
+    const maxR     = gridSpacing * DOT_MAX_RADIUS_RATIO;
     const minR     = 1.5;
     const innerMin = gridSpacing * 0.165;
 
-    const cols    = Math.floor(width / gridSpacing);
-    const rows    = Math.floor(height / gridSpacing);
-    const offsetX = (width  - cols * gridSpacing) / 2 + gridSpacing / 2;
-    const offsetY = (height - rows * gridSpacing) / 2 + gridSpacing / 2;
-
-    // --- Reset batched paths ---
     innerPath.reset();
     ripplePath.reset();
     outerPath.reset();
 
-    // --- Build batched paths over the grid ---
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const gx = offsetX + col * gridSpacing;
-        const gy = offsetY + row * gridSpacing;
+    forEachGridPoint(width, height, gridSpacing, (gx, gy) => {
+      // sdfHeart  — pulsing scale → heart interior shape
+      // sdfRipple — fixed scale   → ripple rings never contract
+      const sdfHeart  = heartSDF(gx, gy, cx, cy, heartScale);
+      const sdfRipple = heartSDF(gx, gy, cx, cy, baseHeartScale);
+      const inside    = smoothstep(EDGE_OUTER, EDGE_INNER, sdfHeart);
 
-        // Two SDF evaluations per point (same logic as web):
-        // sdfHeart  — pulsing scale → heart interior shape
-        // sdfRipple — fixed scale   → ripple rings never contract
-        const sdfHeart  = heartSDF(gx, gy, cx, cy, heartScale);
-        const sdfRipple = heartSDF(gx, gy, cx, cy, baseHeartScale);
-        const inside    = smoothstep(EDGE_OUTER, EDGE_INNER, sdfHeart);
+      const rippleBoost   = rippleBoostAt(sdfRipple, timeSec, beatPeriodSec);
+      const rippleContrib = rippleBoost * Math.max(0, 1 - inside * 3);
 
-        const rippleBoost   = rippleBoostAt(sdfRipple, timeSec, beatPeriodSec);
-        const rippleContrib = rippleBoost * Math.max(0, 1 - inside * 3);
+      const rBase = inside > 0.5
+        ? innerMin + (maxR - innerMin) * inside * (0.85 + pulse * 0.15)
+        : minR + Math.max(0, innerMin - minR) * (inside * 2);
+      const r = Math.min(maxR, rBase + rippleContrib * maxR);
 
-        const r_base = inside > 0.5
-          ? innerMin + (maxR - innerMin) * inside * (0.85 + pulse * 0.15)
-          : minR + Math.max(0, innerMin - minR) * (inside * 2);
-        const r = Math.min(maxR, r_base + rippleContrib * gridSpacing * 0.23);
-
-        // Route this dot into the right color bucket.
-        let target: SkPath;
-        if (inside > 0.35) {
-          target = innerPath;
-        } else if (rippleBoost > 0.25) {
-          target = rippleBoost > 0.6 ? innerPath : ripplePath;
-        } else {
-          target = outerPath;
-        }
-
-        if (useHearts && r >= 2) {
-          addHeartToPath(target, gx, gy, r);
-        } else {
-          target.addCircle(gx, gy, Math.max(0.5, r));
-        }
+      let target: SkPath;
+      if (inside > 0.35) {
+        target = innerPath;
+      } else if (rippleBoost > 0.25) {
+        target = rippleBoost > 0.6 ? innerPath : ripplePath;
+      } else {
+        target = outerPath;
       }
-    }
+
+      if (useHearts && r >= 2) {
+        addHeartToPath(target, gx, gy, r);
+      } else {
+        target.addCircle(gx, gy, Math.max(0.5, r));
+      }
+    });
 
     // --- 3 draw calls for ~1000 dots ---
     canvas.drawPath(outerPath,  outerPaint);

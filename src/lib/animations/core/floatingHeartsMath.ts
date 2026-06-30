@@ -3,6 +3,11 @@
 import type { FloatingHeart } from './types';
 import { heartSDF, smoothstep } from './heartMath';
 
+// Keep count low (6–10) so hearts stay visually distinct and don't overlap into blobs.
+export function floatingHeartCount(width: number, height: number): number {
+  return Math.min(10, Math.max(6, Math.floor((width * height) / 55000)));
+}
+
 export function initFloatingHearts(width: number, height: number, count: number): FloatingHeart[] {
   return Array.from({ length: count }, () => spawnHeart(width, height, true));
 }
