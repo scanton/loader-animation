@@ -1,0 +1,24 @@
+{
+  "name": "heartstamp-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "ios": "react-native run-ios",
+    "android": "react-native run-android",
+    "start": "react-native start",
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shopify/react-native-skia": "^1.3.0",
+    "react": "18.2.0",
+    "react-native": "0.74.0",
+    "react-native-reanimated": "^3.10.0"
+  },
+  "devDependencies": {
+    "@tsconfig/react-native": "^3.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-native": "^0.73.0",
+    "typescript": "^5.0.0"
+  }
+}
