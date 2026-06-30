@@ -32,7 +32,7 @@ export default function Home() {
   }, [isDark]);
 
   return (
-    <main className={`min-h-screen flex items-center justify-center p-8 transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-zinc-100'}`}>
+    <main className={`min-h-screen flex p-8 transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-zinc-100'}`}>
       <div className="flex gap-8 items-start">
         <Sidebar
           selected={animationType}
