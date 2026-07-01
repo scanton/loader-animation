@@ -17,9 +17,9 @@ export interface AnimationPalette {
 export const DARK_PALETTE: AnimationPalette = {
   background:    '#18181b', // zinc-900
   dots:          '#8a94a0',
-  hearts:        '#e879a0',
+  hearts:        '#f43f5e', // same brand red as the other animations
   beatingInner:  '#f43f5e',
-  beatingOuter:  '#5a2535',
+  beatingOuter:  '#f43f5e', // background grid dots stay brand red, like Lava Hearts
   beatingRipple: '#c04468',
   floatingInner: '#e879a0',
   floatingMid:   '#9b3d65',
@@ -29,9 +29,9 @@ export const DARK_PALETTE: AnimationPalette = {
 export const LIGHT_PALETTE: AnimationPalette = {
   background:    '#ffffff',
   dots:          '#64748b',
-  hearts:        '#e11d48',
+  hearts:        '#f43f5e', // same brand red as the other animations
   beatingInner:  '#f43f5e',
-  beatingOuter:  '#d1d5db',
+  beatingOuter:  '#f43f5e', // background grid dots stay brand red, like Lava Hearts
   beatingRipple: '#fda4af',
   floatingInner: '#f43f5e',
   floatingMid:   '#fda4af',

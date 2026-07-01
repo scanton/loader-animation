@@ -12,6 +12,10 @@ import {
 } from '@/lib/animations/floatingHearts';
 import { floatingHeartCount } from '@/lib/animations/core/floatingHeartsMath';
 import { DARK_PALETTE, LIGHT_PALETTE } from '@/lib/animations/core/palette';
+import { drawStampyHalftoneFrame } from '@/lib/animations/stampyHalftone';
+import { drawStampyHudFrame } from '@/lib/animations/stampyHud';
+import { drawStampySvgHalftoneFrame } from '@/lib/animations/stampySvgHalftone';
+import { drawStampyStudioFrame } from '@/lib/animations/stampyStudio';
 
 interface Props {
   animationType: AnimationType;
@@ -77,7 +81,9 @@ export default function AnimationCanvas({
     const state = stateRef.current!;
 
     const tick = (now: number) => {
-      const time = now - state.startTime;
+      // RAF timestamps can predate the performance.now() captured in
+      // initState by a few ms — clamp so animations never see negative time.
+      const time = Math.max(0, now - state.startTime);
       const c = isDark ? DARK_PALETTE : LIGHT_PALETTE;
 
       switch (animationType) {
@@ -117,6 +123,22 @@ export default function AnimationCanvas({
             ctx, width, height, state.floatingHearts, time,
             gridSpacing, c.floatingInner, c.floatingMid, c.floatingOuter, true
           );
+          break;
+
+        case 'stampy-halftone':
+          drawStampyHalftoneFrame(ctx, width, height, time, gridSpacing, c.hearts);
+          break;
+
+        case 'stampy-hud':
+          drawStampyHudFrame(ctx, width, height, time, isDark);
+          break;
+
+        case 'stampy-halftone-svg':
+          drawStampySvgHalftoneFrame(ctx, width, height, time, gridSpacing, c.hearts);
+          break;
+
+        case 'stampy-studio':
+          drawStampyStudioFrame(ctx, width, height, time, isDark);
           break;
       }
 

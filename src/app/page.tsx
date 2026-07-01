@@ -17,6 +17,10 @@ const SUBTITLES: Record<AnimationType, string> = {
   'beating-heart': 'Pouring some love into this — almost there.',
   'floating-hearts': 'HeartStamp is thinking of you 💕',
   'floating-hearts-shapes': 'HeartStamp is thinking of you 💕',
+  'stampy-halftone': 'Putting the pieces together…',
+  'stampy-hud': 'Heart OS is online — analyzing with love.',
+  'stampy-halftone-svg': 'Stampy is coming together, dot by dot…',
+  'stampy-studio': 'Stampy is painting something for you…',
 };
 
 export default function Home() {

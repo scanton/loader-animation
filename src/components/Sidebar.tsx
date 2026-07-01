@@ -23,7 +23,11 @@ const ANIMATIONS: { type: AnimationType; label: string; icon: string; hidden?: b
   { type: 'beating-heart', label: 'Beating Heart', icon: '💓', hidden: true },
   { type: 'beating-heart-shapes', label: 'Heart Pulse', icon: '💓' },
   { type: 'floating-hearts', label: 'Floating Hearts', icon: '💕', hidden: true },
-  { type: 'floating-hearts-shapes', label: 'Heart Drift', icon: '💕' },
+  { type: 'floating-hearts-shapes', label: 'Heart Drift', icon: '💕', hidden: true },
+  { type: 'stampy-halftone', label: 'Heart-tone', icon: '💗' },
+  { type: 'stampy-hud', label: 'Heart OS', icon: '🖥️' },
+  { type: 'stampy-halftone-svg', label: 'Stampy Halftone', icon: '😈' },
+  { type: 'stampy-studio', label: 'Stampy OS', icon: '🎨' },
 ];
 
 export default function Sidebar({

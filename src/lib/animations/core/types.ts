@@ -6,7 +6,11 @@ export type AnimationType =
   | 'beating-heart'
   | 'beating-heart-shapes'
   | 'floating-hearts'
-  | 'floating-hearts-shapes';
+  | 'floating-hearts-shapes'
+  | 'stampy-halftone'
+  | 'stampy-hud'
+  | 'stampy-halftone-svg'
+  | 'stampy-studio';
 
 export interface Blob {
   x: number;
