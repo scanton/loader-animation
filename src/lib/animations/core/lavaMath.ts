@@ -33,10 +33,10 @@ export function initBlobs(width: number, height: number): Blob[] {
   return blobs;
 }
 
-export function updateBlobs(blobs: Blob[], width: number, height: number): void {
+export function updateBlobs(blobs: Blob[], width: number, height: number, speed = 1): void {
   for (const blob of blobs) {
-    blob.x += blob.vx;
-    blob.y += blob.vy;
+    blob.x += blob.vx * speed;
+    blob.y += blob.vy * speed;
     if (blob.x < 0 || blob.x > width) blob.vx *= -1;
     if (blob.y < 0 || blob.y > height) blob.vy *= -1;
     blob.x = Math.max(0, Math.min(width, blob.x));

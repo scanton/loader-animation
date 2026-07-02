@@ -23,13 +23,17 @@ interface Props {
   height: number;
   gridSpacing?: number;
   isDark: boolean;
+  speed?: number;
 }
 
 interface AnimState {
   blobs: Blob[];
   floatingHearts: FloatingHeart[];
   rafId: number;
-  startTime: number;
+  // Speed-scaled elapsed time (ms). Accumulated per frame rather than derived
+  // from wall clock so changing the speed mid-animation never causes a jump.
+  animTime: number;
+  lastNow: number | null;
   lastType: AnimationType;
   lastWidth: number;
   lastHeight: number;
@@ -41,6 +45,7 @@ export default function AnimationCanvas({
   height,
   gridSpacing = 18,
   isDark,
+  speed = 1,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<AnimState | null>(null);
@@ -51,7 +56,8 @@ export default function AnimationCanvas({
         blobs: type === 'hearts' ? initHeartsBlobs(w, h) : initDotsBlobs(w, h),
         floatingHearts: initFloatingHearts(w, h, floatingHeartCount(w, h)),
         rafId: 0,
-        startTime: performance.now(),
+        animTime: 0,
+        lastNow: null,
         lastType: type,
         lastWidth: w,
         lastHeight: h,
@@ -81,19 +87,22 @@ export default function AnimationCanvas({
     const state = stateRef.current!;
 
     const tick = (now: number) => {
-      // RAF timestamps can predate the performance.now() captured in
-      // initState by a few ms — clamp so animations never see negative time.
-      const time = Math.max(0, now - state.startTime);
+      // Cap the per-frame delta (e.g. after a backgrounded tab) so animations
+      // advance smoothly instead of leaping ahead.
+      const delta = state.lastNow === null ? 0 : Math.min(100, Math.max(0, now - state.lastNow));
+      state.lastNow = now;
+      state.animTime += delta * speed;
+      const time = state.animTime;
       const c = isDark ? DARK_PALETTE : LIGHT_PALETTE;
 
       switch (animationType) {
         case 'dots':
-          updateBlobs(state.blobs, width, height);
+          updateBlobs(state.blobs, width, height, speed);
           drawDotsFrame(ctx, width, height, state.blobs, gridSpacing, c.dots);
           break;
 
         case 'hearts':
-          updateBlobs(state.blobs, width, height);
+          updateBlobs(state.blobs, width, height, speed);
           drawHeartsFrame(ctx, width, height, state.blobs, gridSpacing, c.hearts);
           break;
 
@@ -114,14 +123,14 @@ export default function AnimationCanvas({
         case 'floating-hearts':
           drawFloatingHeartsFrame(
             ctx, width, height, state.floatingHearts, time,
-            gridSpacing, c.floatingInner, c.floatingMid, c.floatingOuter, false
+            gridSpacing, c.floatingInner, c.floatingMid, c.floatingOuter, false, speed
           );
           break;
 
         case 'floating-hearts-shapes':
           drawFloatingHeartsFrame(
             ctx, width, height, state.floatingHearts, time,
-            gridSpacing, c.floatingInner, c.floatingMid, c.floatingOuter, true
+            gridSpacing, c.floatingInner, c.floatingMid, c.floatingOuter, true, speed
           );
           break;
 
@@ -150,7 +159,7 @@ export default function AnimationCanvas({
     return () => {
       if (state.rafId) cancelAnimationFrame(state.rafId);
     };
-  }, [animationType, width, height, gridSpacing, isDark, initState]);
+  }, [animationType, width, height, gridSpacing, isDark, speed, initState]);
 
   return (
     <canvas

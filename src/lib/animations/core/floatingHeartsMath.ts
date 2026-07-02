@@ -33,9 +33,10 @@ export function updateFloatingHeart(
   h: FloatingHeart,
   width: number,
   height: number,
-  timeSec: number
+  timeSec: number,
+  speed = 1
 ): void {
-  h.y -= h.vy;
+  h.y -= h.vy * speed;
   h.x = h.startX + Math.sin(timeSec * h.driftFreq + h.driftPhase) * h.driftAmp;
 
   const progress = 1 - h.y / height; // 0 at bottom, 1 at top

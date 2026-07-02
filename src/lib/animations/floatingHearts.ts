@@ -16,14 +16,15 @@ export function drawFloatingHeartsFrame(
   colorInner: string,
   colorMid: string,
   colorOuter: string,
-  useHearts: boolean
+  useHearts: boolean,
+  speed = 1
 ): void {
   ctx.clearRect(0, 0, width, height);
 
   const timeSec = time / 1000;
 
   for (const h of hearts) {
-    updateFloatingHeart(h, width, height, timeSec);
+    updateFloatingHeart(h, width, height, timeSec, speed);
   }
 
   const minR = 2;

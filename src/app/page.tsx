@@ -28,6 +28,7 @@ export default function Home() {
   const [width, setWidth] = useState(740);
   const [height, setHeight] = useState(600);
   const [gridSpacing, setGridSpacing] = useState(18);
+  const [speed, setSpeed] = useState(1);
   const [isDark, setIsDark] = useState(true);
 
   // Keep <body>'s background in sync with the theme so overscroll/edge
@@ -48,6 +49,8 @@ export default function Home() {
           onHeightChange={setHeight}
           gridSpacing={gridSpacing}
           onGridSpacingChange={setGridSpacing}
+          speed={speed}
+          onSpeedChange={setSpeed}
           isDark={isDark}
           onToggleDark={() => setIsDark(d => !d)}
         />
@@ -69,6 +72,7 @@ export default function Home() {
               width={width}
               height={height}
               gridSpacing={gridSpacing}
+              speed={speed}
               isDark={isDark}
             />
           </div>

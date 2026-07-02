@@ -11,6 +11,8 @@ interface Props {
   onHeightChange: (v: number) => void;
   gridSpacing: number;
   onGridSpacingChange: (v: number) => void;
+  speed: number;
+  onSpeedChange: (v: number) => void;
   isDark: boolean;
   onToggleDark: () => void;
 }
@@ -45,6 +47,8 @@ export default function Sidebar({
   onHeightChange,
   gridSpacing,
   onGridSpacingChange,
+  speed,
+  onSpeedChange,
   isDark,
   onToggleDark,
 }: Props) {
@@ -151,6 +155,21 @@ export default function Sidebar({
           step={2}
           onChange={onGridSpacingChange}
           unit="px"
+          isDark={isDark}
+        />
+      </div>
+
+      {/* Animation speed */}
+      <div>
+        <p className={sectionLabelClass}>Animation Speed</p>
+        <SliderControl
+          label="Speed"
+          value={speed}
+          min={0.25}
+          max={3}
+          step={0.25}
+          onChange={onSpeedChange}
+          unit="x"
           isDark={isDark}
         />
       </div>
