@@ -30,6 +30,12 @@ const ANIMATIONS: { type: AnimationType; label: string; icon: string; hidden?: b
   { type: 'stampy-studio', label: 'Stampy OS', icon: '🎨' },
 ];
 
+const SPACING_PRESETS: { label: string; value: number }[] = [
+  { label: 'Small', value: 14 },
+  { label: 'Medium', value: 18 },
+  { label: 'Large', value: 22 },
+];
+
 export default function Sidebar({
   selected,
   onSelect,
@@ -117,6 +123,26 @@ export default function Sidebar({
       {/* Grid spacing */}
       <div>
         <p className={sectionLabelClass}>Grid Density</p>
+        <div className="flex gap-2 mb-4">
+          {SPACING_PRESETS.map(({ label: presetLabel, value }) => (
+            <button
+              key={presetLabel}
+              onClick={() => onGridSpacingChange(value)}
+              aria-pressed={gridSpacing === value}
+              className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+                gridSpacing === value
+                  ? isDark
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    : 'bg-rose-100 text-rose-700 border border-rose-400/50'
+                  : isDark
+                    ? 'bg-zinc-800/60 text-zinc-400 border border-zinc-700/50 hover:bg-zinc-700/60 hover:text-zinc-200'
+                    : 'bg-zinc-200/60 text-zinc-600 border border-zinc-300/50 hover:bg-zinc-300/60 hover:text-zinc-800'
+              }`}
+            >
+              {presetLabel}
+            </button>
+          ))}
+        </div>
         <SliderControl
           label="Spacing"
           value={gridSpacing}
