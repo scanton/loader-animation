@@ -21,10 +21,11 @@ const SUBTITLES: Record<AnimationType, string> = {
   'stampy-hud': 'Heart OS is online — analyzing with love.',
   'stampy-halftone-svg': 'Stampy is coming together, dot by dot…',
   'stampy-studio': 'Stampy is painting something for you…',
+  'image-edit': 'Adding a little more love to your card…',
 };
 
 export default function Home() {
-  const [animationType, setAnimationType] = useState<AnimationType>('hearts');
+  const [animationType, setAnimationType] = useState<AnimationType>('image-edit');
   const [width, setWidth] = useState(740);
   const [height, setHeight] = useState(600);
   const [gridSpacing, setGridSpacing] = useState(18);

@@ -30,6 +30,7 @@ const ANIMATIONS: { type: AnimationType; label: string; icon: string; hidden?: b
   { type: 'stampy-hud', label: 'Heart OS', icon: '🖥️' },
   { type: 'stampy-halftone-svg', label: 'Stampy Halftone', icon: '😈' },
   { type: 'stampy-studio', label: 'Stampy OS', icon: '🎨' },
+  { type: 'image-edit', label: 'Image Edit', icon: '🪄' },
 ];
 
 const SPACING_PRESETS: { label: string; value: number }[] = [

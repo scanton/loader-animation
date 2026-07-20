@@ -10,7 +10,8 @@ export type AnimationType =
   | 'stampy-halftone'
   | 'stampy-hud'
   | 'stampy-halftone-svg'
-  | 'stampy-studio';
+  | 'stampy-studio'
+  | 'image-edit';
 
 export interface Blob {
   x: number;

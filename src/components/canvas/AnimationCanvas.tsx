@@ -16,6 +16,7 @@ import { drawStampyHalftoneFrame } from '@/lib/animations/stampyHalftone';
 import { drawStampyHudFrame } from '@/lib/animations/stampyHud';
 import { drawStampySvgHalftoneFrame } from '@/lib/animations/stampySvgHalftone';
 import { drawStampyStudioFrame } from '@/lib/animations/stampyStudio';
+import { drawImageEditPulseFrame } from '@/lib/animations/imageEditPulse';
 
 interface Props {
   animationType: AnimationType;
@@ -29,11 +30,9 @@ interface Props {
 interface AnimState {
   blobs: Blob[];
   floatingHearts: FloatingHeart[];
-  rafId: number;
   // Speed-scaled elapsed time (ms). Accumulated per frame rather than derived
   // from wall clock so changing the speed mid-animation never causes a jump.
   animTime: number;
-  lastNow: number | null;
   lastType: AnimationType;
   lastWidth: number;
   lastHeight: number;
@@ -55,9 +54,7 @@ export default function AnimationCanvas({
       return {
         blobs: type === 'hearts' ? initHeartsBlobs(w, h) : initDotsBlobs(w, h),
         floatingHearts: initFloatingHearts(w, h, floatingHeartCount(w, h)),
-        rafId: 0,
         animTime: 0,
-        lastNow: null,
         lastType: type,
         lastWidth: w,
         lastHeight: h,
@@ -80,17 +77,27 @@ export default function AnimationCanvas({
       prev.lastHeight !== height;
 
     if (needsReinit) {
-      if (prev?.rafId) cancelAnimationFrame(prev.rafId);
       stateRef.current = initState(animationType, width, height);
     }
 
     const state = stateRef.current!;
 
+    // The loop's identity lives in effect-local variables, not on the shared
+    // state object. Multiple loops briefly coexisting (Strict Mode, Fast
+    // Refresh, rapid prop changes) each keep independent timing, and the
+    // `alive` flag guarantees an orphaned loop halts even if its RAF id was
+    // lost — a leaked loop would otherwise stomp shared timing fields and
+    // effectively freeze the animation clock.
+    let alive = true;
+    let rafId = 0;
+    let lastNow: number | null = null;
+
     const tick = (now: number) => {
+      if (!alive) return;
       // Cap the per-frame delta (e.g. after a backgrounded tab) so animations
       // advance smoothly instead of leaping ahead.
-      const delta = state.lastNow === null ? 0 : Math.min(100, Math.max(0, now - state.lastNow));
-      state.lastNow = now;
+      const delta = lastNow === null ? 0 : Math.min(100, Math.max(0, now - lastNow));
+      lastNow = now;
       state.animTime += delta * speed;
       const time = state.animTime;
       const c = isDark ? DARK_PALETTE : LIGHT_PALETTE;
@@ -149,15 +156,20 @@ export default function AnimationCanvas({
         case 'stampy-studio':
           drawStampyStudioFrame(ctx, width, height, time, isDark);
           break;
+
+        case 'image-edit':
+          drawImageEditPulseFrame(ctx, width, height, time, gridSpacing);
+          break;
       }
 
-      state.rafId = requestAnimationFrame(tick);
+      rafId = requestAnimationFrame(tick);
     };
 
-    state.rafId = requestAnimationFrame(tick);
+    rafId = requestAnimationFrame(tick);
 
     return () => {
-      if (state.rafId) cancelAnimationFrame(state.rafId);
+      alive = false;
+      cancelAnimationFrame(rafId);
     };
   }, [animationType, width, height, gridSpacing, isDark, speed, initState]);
 

@@ -41,6 +41,19 @@ function getAsset(url: string, recolorFill?: string): Asset | null {
   return asset;
 }
 
+// Returns the loaded image element for an asset, or null while it's still
+// loading / if it failed. For callers that need custom drawing (cover-fit,
+// filters) rather than the square-fit drawImageAsset below.
+export function getImageAsset(url: string): HTMLImageElement | null {
+  const asset = getAsset(url);
+  return asset?.status === 'ready' ? asset.img : null;
+}
+
+// True once the asset has definitively failed to load (e.g. missing file).
+export function imageAssetFailed(url: string): boolean {
+  return getAsset(url)?.status === 'failed';
+}
+
 // Draws an image asset centered at (cx, cy) in a size×size box (all Stampy
 // assets have a square viewBox, so forcing square is correct — and it also
 // sidesteps SVGs reporting no intrinsic size). Falls back to a red heart.
