@@ -1,27 +1,38 @@
-import { heartSDF } from './core/heartMath';
+import { heartSDF, smoothstep } from './core/heartMath';
 import { forEachGridPoint, DOT_MAX_RADIUS_RATIO } from './core/gridMath';
-import { getImageAsset, imageAssetFailed } from './stampyImage';
+import { getImageAsset } from './stampyImage';
 
 // "Image Edit" loading effect: the image being edited sits blurred underneath
 // a sparse grid of warm-white shimmering dots, while heart-shaped pulse rings
 // radiate outward from the center through the grid — matching the look of the
 // mobile app's editing overlay.
 //
-// Demo images cycle between the card cover and inside spread with a crossfade.
-// Each is referenced by basename; .png is tried first, then .jpg.
+// The demo image follows the canvas orientation: the portrait card cover for
+// portrait canvases, the landscape inside spread otherwise. Each is referenced
+// by basename; .png is tried first, then .jpg.
 
-const IMAGE_BASES = ['/card-cover', '/card-inside'];
+const COVER_BASE = '/card-cover';   // portrait art, shown when width < height
+const INSIDE_BASE = '/card-inside'; // landscape art, shown when width >= height
 const EXTENSIONS = ['.png', '.jpg'];
 
-const CYCLE_SEC = 8;    // how long each image is shown
-const FADE_SEC = 0.9;   // crossfade duration at the end of each cycle
+// Heart pulse rings. Each ring is an actual heart OUTLINE whose scale grows
+// over its lifetime — unlike SDF iso-lines (which round off into circles with
+// distance), this keeps the ring a crisp heart shape all the way out.
+// Each beat is a double pulse ("lub-dub"): two rings born a beat-fraction
+// apart, the second slightly softer, then a rest until the next beat.
+const RING_PERIOD_SEC = 2.4;         // one full heartbeat per period
+const DOUBLE_PULSE_GAP_SEC = 0.41;   // delay between the "lub" and the "dub"
+const DOUBLE_PULSE_SOFTNESS = 0.85;  // second ring's relative strength
+const RING_START_SCALE = 24;         // px half-width at birth
+const RING_GROWTH_PX_PER_SEC = 150;  // how fast the heart outline expands
+const RING_LIFE_SEC = 3.6;
+const RING_WIDTH_PX = 13;            // gaussian half-width of the outline band
 
-// Heart pulse rings, in SDF units from the heart surface (same approach as
-// the Beating Heart ripples — iso-lines of the SDF stay heart-shaped).
-const RING_PERIOD_SEC = 1.9;
-const RING_SPEED = 1.1;    // SDF units/sec outward
-const RING_LIFE_SEC = 3.2;
-const HEART_SCALE_FACTOR = 0.22; // of min(width, height)
+// [birth offset within the beat, relative strength]
+const PULSE_OFFSETS: Array<[number, number]> = [
+  [0, 1],
+  [DOUBLE_PULSE_GAP_SEC, DOUBLE_PULSE_SOFTNESS],
+];
 
 function prand(seed: number): number {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
@@ -35,10 +46,6 @@ function resolveImage(base: string): HTMLImageElement | null {
     if (img) return img;
   }
   return null;
-}
-
-function allCandidatesFailed(base: string): boolean {
-  return EXTENSIONS.every(ext => imageAssetFailed(base + ext));
 }
 
 // --- Blurred-image cache ---------------------------------------------------
@@ -65,7 +72,7 @@ function getBlurredImage(base: string, width: number, height: number): HTMLCanva
   const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight) * overscan;
   const dw = img.naturalWidth * scale;
   const dh = img.naturalHeight * scale;
-  ctx.filter = 'blur(18px)';
+  ctx.filter = 'blur(7px)';
   ctx.drawImage(img, (width - dw) / 2, (height - dh) / 2, dw, dh);
 
   blurCache.set(key, canvas);
@@ -81,18 +88,26 @@ function drawFallbackBackground(ctx: CanvasRenderingContext2D, width: number, he
   ctx.fillRect(0, 0, width, height);
 }
 
-// Accumulated ring boost at a grid point, 0–1.
-function ringBoostAt(sdf: number, timeSec: number): number {
+// Accumulated ring boost at a grid point, 0–1. For each live ring, the point's
+// signed distance to a heart outline at the ring's current scale is converted
+// to pixels, then run through a gaussian band around that outline.
+function ringBoostAt(gx: number, gy: number, cx: number, cy: number, timeSec: number): number {
   const currentIdx = Math.floor(timeSec / RING_PERIOD_SEC);
   let boost = 0;
   for (let k = currentIdx; k >= Math.max(0, currentIdx - 3); k--) {
-    const ageSec = timeSec - k * RING_PERIOD_SEC;
-    if (ageSec < 0 || ageSec > RING_LIFE_SEC) continue;
-    const ringPos = ageSec * RING_SPEED;
-    const dist = sdf - ringPos;
-    const sigma = 0.12 + ageSec * 0.1; // ring widens as it travels
-    const fade = Math.pow(1 - ageSec / RING_LIFE_SEC, 1.3);
-    boost += Math.exp(-(dist * dist) / (sigma * sigma)) * fade;
+    // Two rings per beat: the "lub" at the beat start, the "dub" just after.
+    for (const [offsetSec, strength] of PULSE_OFFSETS) {
+      const ageSec = timeSec - (k * RING_PERIOD_SEC + offsetSec);
+      if (ageSec < 0 || ageSec > RING_LIFE_SEC) continue;
+      const ringScale = RING_START_SCALE + ageSec * RING_GROWTH_PX_PER_SEC;
+      // heartSDF is normalized by scale, so sdf * scale ≈ pixel distance.
+      const distPx = heartSDF(gx, gy, cx, cy, ringScale) * ringScale;
+      // Hold near-full strength for most of the journey (so the ring is still
+      // clearly visible when it reaches the border), then release quickly.
+      const ageFrac = ageSec / RING_LIFE_SEC;
+      const fade = (1 - 0.2 * ageFrac) * (1 - smoothstep(0.72, 1, ageFrac));
+      boost += Math.exp(-(distPx * distPx) / (RING_WIDTH_PX * RING_WIDTH_PX)) * fade * strength;
+    }
   }
   return Math.min(1, boost);
 }
@@ -106,30 +121,16 @@ export function drawImageEditPulseFrame(
 ): void {
   const timeSec = time / 1000;
 
-  // --- Blurred image background with slow crossfade between the two demos ---
-  const cycleIdx = Math.floor(timeSec / CYCLE_SEC);
-  const currentBase = IMAGE_BASES[cycleIdx % IMAGE_BASES.length];
-  const nextBase = IMAGE_BASES[(cycleIdx + 1) % IMAGE_BASES.length];
-  const cycleT = timeSec % CYCLE_SEC;
+  // --- Blurred image background, chosen by canvas orientation ---
+  const currentBase = width < height ? COVER_BASE : INSIDE_BASE;
 
   const current = getBlurredImage(currentBase, width, height);
   if (current) {
     ctx.drawImage(current, 0, 0);
-  } else if (allCandidatesFailed(currentBase)) {
-    drawFallbackBackground(ctx, width, height);
   } else {
-    // Still loading — keep the fallback so the effect never renders on black.
+    // Still loading (or missing) — draw the fallback so the effect never
+    // renders on black.
     drawFallbackBackground(ctx, width, height);
-  }
-
-  const fadeStart = CYCLE_SEC - FADE_SEC;
-  if (cycleT > fadeStart) {
-    const next = getBlurredImage(nextBase, width, height);
-    if (next) {
-      ctx.globalAlpha = (cycleT - fadeStart) / FADE_SEC;
-      ctx.drawImage(next, 0, 0);
-      ctx.globalAlpha = 1;
-    }
   }
 
   // Soft dark veil so the warm-white dots stay visible over bright artwork.
@@ -139,13 +140,11 @@ export function drawImageEditPulseFrame(
   // --- Heart-shaped pulse through the dot grid ---
   const cx = width / 2;
   const cy = height / 2;
-  const heartScale = Math.min(width, height) * HEART_SCALE_FACTOR;
   const maxR = gridSpacing * DOT_MAX_RADIUS_RATIO;
   const baseR = Math.min(1.6, maxR * 0.55);
 
   forEachGridPoint(width, height, gridSpacing, (gx, gy) => {
-    const sdf = heartSDF(gx, gy, cx, cy, heartScale);
-    const boost = ringBoostAt(Math.max(0, sdf), timeSec);
+    const boost = ringBoostAt(gx, gy, cx, cy, timeSec);
 
     // Per-dot shimmer — stable per position, slowly drifting in time — gives
     // the grid the uneven "sheen" of the reference overlay.
@@ -153,7 +152,7 @@ export function drawImageEditPulseFrame(
     const shimmer = 0.5 + 0.5 * Math.sin(timeSec * 1.5 + seed * Math.PI * 2);
 
     const r = baseR + (maxR - baseR) * boost;
-    const alpha = Math.min(1, 0.26 + shimmer * 0.14 + boost * 0.6);
+    const alpha = Math.min(1, 0.26 + shimmer * 0.14 + boost * 0.74);
 
     ctx.beginPath();
     ctx.arc(gx, gy, r, 0, Math.PI * 2);
